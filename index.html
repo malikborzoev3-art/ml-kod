@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta id="vp" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0e0e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230e0e0e'/%3E%3Cpath fill='%23fff' d='M12 3 5.5 5.6v5.5c0 4.2 2.8 7.9 6.5 9.1 3.7-1.2 6.5-4.9 6.5-9.1V5.6L12 3z'/%3E%3C/svg%3E">
+<title>ML редактор кода</title>
+<script>
+// Журнал ошибок: ставится первым, чтобы поймать всё, что случилось при загрузке (меню → «Журнал ошибок и самопроверка»)
+(function(){
+  var L = window.__mlLog = [];
+  function add(k, m, x){ L.push({ t: Date.now(), k: k, m: String(m).slice(0, 400), x: x || '' }); if (L.length > 60) L.shift(); }
+  var stk = function(e){ return e && e.stack ? String(e.stack).split('\n').slice(0, 4).join('\n') : ''; };
+  addEventListener('error', function(e){
+    var t = e.target;
+    if (t && t !== window && (t.src || t.href)) { add('не загрузился файл', t.src || t.href); return; }
+    add('error', e.message || 'error', (e.filename || '') + ':' + (e.lineno || 0) + ':' + (e.colno || 0) + (stk(e.error) ? '\n' + stk(e.error) : ''));
+  }, true);
+  addEventListener('unhandledrejection', function(e){ var r = e.reason; add('promise', (r && r.message) || r, stk(r)); });
+  var ce = console.error;
+  console.error = function(){ try { add('console.error', Array.prototype.map.call(arguments, function(a){ return (a && a.message) || String(a); }).join(' ')); } catch (_) {} return ce.apply(console, arguments); };
+})();
+</script>
+<script type="importmap">
+{
+ "imports": {
+  "codemirror": "https://esm.sh/codemirror@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/state": "https://esm.sh/@codemirror/state@6?external=@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/view": "https://esm.sh/@codemirror/view@6?external=@codemirror/state,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/language": "https://esm.sh/@codemirror/language@6?external=@codemirror/state,@codemirror/view,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/commands": "https://esm.sh/@codemirror/commands@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/search": "https://esm.sh/@codemirror/search@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/lint": "https://esm.sh/@codemirror/lint@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@lezer/common": "https://esm.sh/@lezer/common@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@lezer/lr": "https://esm.sh/@lezer/lr@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@lezer/highlight": "https://esm.sh/@lezer/highlight@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/python,@lezer/javascript,@lezer/html,@lezer/css",
+  "@lezer/python": "https://esm.sh/@lezer/python@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/javascript,@lezer/html,@lezer/css",
+  "@lezer/javascript": "https://esm.sh/@lezer/javascript@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/html,@lezer/css",
+  "@lezer/html": "https://esm.sh/@lezer/html@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/css",
+  "@lezer/css": "https://esm.sh/@lezer/css@1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@codemirror/search,@codemirror/autocomplete,@codemirror/lint,@codemirror/lang-python,@codemirror/lang-javascript,@codemirror/lang-html,@codemirror/lang-css,@lezer/common,@lezer/lr,@lezer/highlight,@lezer/python,@lezer/javascript,@lezer/html"
+ }
+}
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5 3.5 4.7v6.6c0 5.1 3.5 9.6 8.5 11.2 5-1.6 8.5-6.1 8.5-11.2V4.7L12 1.5z"/></svg>
+    ML
+  </div>
+
+      <button id="fmtBtn" aria-label="Форматировать код" title="Форматировать код" class="tb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        <span>Формат</span>
+      </button>
+
+      <!-- Выбор языка -->
+      <select id="lang" hidden>
+        <option value="py">Python</option>
+        <option value="js">JavaScript</option>
+        <option value="html">HTML</option>
+        <option value="css">CSS</option>
+      </select>
+      <button id="langBtn" class="lb" title="Выбрать язык" aria-label="Выбрать язык"><span class="bdg" id="langBadge">PY</span><span id="langName">Python</span><span class="chev">▾</span></button>
+
+
+      <!-- Экспорт файлов -->
+      <button id="exportMainBtn" aria-label="Экспорт файлов" title="Экспортировать файлы" class="tb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Экспорт</span>
+      </button>
+
+  <button id="imgBtn" class="tb" title="Сделать красивую картинку из кода" aria-label="Картинка из кода"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Картинка</span></button>
+  <button id="shareBtn" class="tb" title="Скопировать ссылку на код" aria-label="Поделиться ссылкой"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Ссылка</span></button>
+  <button id="schoolBtn" class="tb" title="Классы: вход для учеников и учителей" aria-label="Классы и ученики"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Класс</span></button>
+  <span class="svw"><button id="sv" class="ib" data-tip="Сохранённые коды: каждый запуск сохраняется сюда" aria-label="Сохранённые коды"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg></button></span>
+  <select id="th" aria-label="Тема"><option value="dark">Тёмная</option><option value="gray">Серая</option><option value="light">Светлая</option></select>
+  <button id="stopBtn" title="Остановить выполнение" aria-label="Остановить">■ Стоп</button>
+  <button class="play" id="run">▶ Запуск</button>
+</header>
+<div id="bar"><div id="tabs" role="tablist" aria-label="Файлы"></div><div id="acts"><button id="mn" class="ab">Меню ▾</button></div></div>
+<div id="svp" hidden></div><div id="mnp" hidden></div>
+<input type="file" id="fi" hidden multiple accept=".py,.js,.html,.htm,.css,.txt"><div id="toast"></div>
+<div id="kb" hidden></div>
+<div id="devp" hidden><div class="dbox"><h3>С какого устройства ты зашёл?</h3><p>На телефоне и планшете включатся удобства: панель с символами над клавиатурой, крупные кнопки, а на телефоне переключатель «Код / Результат». Потом это можно поменять в меню.</p><div class="dbt"><button data-d="desktop">Компьютер</button><button data-d="tablet">Планшет</button><button data-d="phone">Телефон</button></div></div></div>
+<div id="seg"><button data-v="code" class="on">Код</button><button data-v="out">Результат</button></div>
+<main id="main">
+  <div class="pane" id="ed">
+    <div id="gh" title="Потяни, чтобы спрятать номера строк"></div>
+    <div id="hint">Нажмите <b>Tab</b> — вставится шаблон страницы</div>
+    <div id="sug"></div>
+    <pre id="ln" class="ed"></pre>
+    <pre id="hl" class="ed"></pre>
+    <textarea id="code" class="ed" aria-label="Редактор кода. Чтобы выйти из редактора клавишей Tab, нажмите Esc" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" autofocus></textarea>
+  </div>
+  <div id="gap" role="separator" tabindex="0" aria-label="Граница между кодом и результатом. Стрелки меняют размер, Enter возвращает пополам" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" title="Потяни, чтобы изменить размер"></div>
+  <div class="pane"><div id="con" hidden></div><iframe id="out" sandbox="allow-scripts allow-modals"></iframe></div>
+</main>
+<footer id="st">Готово</footer>
+
+<script src="acorn.min.js"></script>
+<script>window.acorn||document.write('<script src="acorn_min.js"><\/script>')</script>
+<script>window.acorn||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.11.3/acorn.min.js" crossorigin="anonymous"><\/script>')</script>
+<script>
+(function(){
+  // Версия Skulpt закреплена на коммите (чужие обновления репозитория не сломают редактор).
+  // Чтобы обновить: git ls-remote https://github.com/Tezumie/Skulpt-CDN.git HEAD
+  var CDN = new URL('./', location.href).href; // Skulpt лежит рядом с index.html
+  function load(src){ return new Promise(function(ok, no){ var s = document.createElement('script'); s.crossOrigin = 'anonymous'; s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+  function first(list, ok){ return list.reduce(function(p, f){ return p.catch(function(){ return load(f).then(function(){ if (!ok()) throw 0; }); }); }, Promise.reject()); }
+  function pair(base){
+    return first([base + 'skulpt.min.js', base + 'skulpt_min.js'], function(){ return typeof Sk !== 'undefined'; })
+      .then(function(){ return first([base + 'skulpt-stdlib.js', base + 'skulpt_stdlib.js'], function(){ return !!Sk.builtinFiles; }); });
+  }
+  window.ML = window.ML || {}; ML.CDN = CDN; ML.skReady = new Promise(function(r){ function go(){ pair(CDN).catch(function(){}).then(r); } if (document.readyState === 'complete') setTimeout(go, 4000); else addEventListener('load', function(){ setTimeout(go, 4000); }); });
+})();
+</script>
+<script type="text/plain" id="pyo-worker">
+  let py = null, written = [], lint, dbg, figs, nIn = 0, fmtOk = false, fmtP = null, flOk = false, mpOk = false, sbOk = false, plOk = false;
+  // Plotly: show() не открывает окно, а складывает фигуру в список; страница рисует её через plotly.js (python-пакет 5.24.1 = plotly.js 2.35.2)
+  // Автоустановка: любой импортируемый модуль, которого нет ни в стандартной библиотеке, ни в наборе Pyodide, пробуем поставить из PyPI (только чисто-Python пакеты)
+  const MISS = ['import sys, os, json, importlib.util', 'from pyodide.code import find_imports', 'def _missing(src):', '    r = []',
+    '    try: names = find_imports(src)', '    except Exception: return "[]"', '    for n in names:', '        try:',
+    '            if n in sys.modules or os.path.exists(n + ".py") or os.path.isdir(n) or importlib.util.find_spec(n) is not None: continue',
+    '        except Exception: pass', '        r.append(n)', '    return json.dumps(r)'].join('\n');
+  const ALIAS = { sklearn: 'scikit-learn', cv2: 'opencv-python', PIL: 'pillow', bs4: 'beautifulsoup4', yaml: 'pyyaml', skimage: 'scikit-image', dateutil: 'python-dateutil', Crypto: 'pycryptodome', docx: 'python-docx', jwt: 'pyjwt', dotenv: 'python-dotenv', attr: 'attrs', serial: 'pyserial', OpenSSL: 'pyopenssl', magic: 'python-magic', telegram: 'python-telegram-bot', pptx: 'python-pptx', markdown: 'markdown', fitz: 'pymupdf' };
+  const NOPIP = new Set(['tkinter', '_tkinter', 'turtle', 'curses', '_curses', 'readline', 'browser', 'js', 'pyodide', 'pyodide_js', 'pygame', '__main__', 'this', 'antigravity', 'idlelib']);
+  let missOk = false;
+  const PLPATCH = ['import json as _j', 'import plotly.basedatatypes as _bd, plotly.io as _pio', '_pfl = []',
+    'def _pshow(self, *a, **k): _pfl.append(self.to_json())', '_bd.BaseFigure.show = _pshow',
+    'def _pio_show(fig, *a, **k): _pfl.append(fig.to_json() if hasattr(fig, "to_json") else _j.dumps(fig))', '_pio.show = _pio_show',
+    'def _pfigs():', '    r = list(_pfl); _pfl.clear(); return _j.dumps(r)'].join('\n');
+  const probe = b => { if (!b) return false; try { const x = new XMLHttpRequest(); x.open('GET', b + '__ml_ping', false); x.send(); return x.status === 200 && x.responseText === 'pong'; } catch (_) { return false; } };
+  const ROOT = '/home/pyodide', dO = new TextDecoder(), dE = new TextDecoder();
+  const send = (id, o) => { o.id = id; postMessage(o); };
+  // запросы requests/urllib идут через XHR; если задан прокси, чужие адреса отправляем через него (обход CORS)
+  let proxy = '', pOrigin = '';
+  const xo = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function () {
+    const a = Array.from(arguments);
+    try { if (proxy) { const x = new URL(a[1], self.location.href); if (/^https?:$/.test(x.protocol) && x.origin !== pOrigin && !/(^|\.)(jsdelivr\.net|cdnjs\.cloudflare\.com|pypi\.org|pythonhosted\.org)$/.test(x.hostname)) a[1] = proxy + encodeURIComponent(x.href); } } catch (_) {}
+    return xo.apply(this, a);
+  };
+  onmessage = async ev => {
+    const d = ev.data;
+    try {
+      if (d.init) {
+        importScripts(d.init + 'pyodide.js');
+        py = await loadPyodide({ indexURL: d.init });
+        py.runPython(d.boot);
+        lint = py.globals.get('_lint'); dbg = py.globals.get('_dbg'); figs = py.globals.get('_figs');
+        postMessage({ ready: 1, sync: probe(d.base) }); return;
+      }
+      if (!py) return;
+      if (d.t === 'probe') { send(d.id, { done: 1, sync: probe(d.base) }); return; }
+      if (d.t === 'check') { send(d.id, { done: 1, r: lint(d.src) }); return; }
+      if (d.t === 'flakes') {
+        // pyflakes: неиспользуемые импорты/переменные и опечатки в именах. Код НЕ выполняется, только разбирается.
+        let r;
+        try {
+          if (!flOk) {
+            await py.loadPackage('micropip');
+            await py.runPythonAsync('import micropip\nawait micropip.install("pyflakes")');
+            py.runPython(['import json', 'def _flakes(src):', '    import pyflakes.api', '    out = []', '    class R:', '        def unexpectedError(self, fn, msg): pass', '        def syntaxError(self, fn, msg, ln, col, text): pass', '        def flake(self, m): out.append([m.lineno, m.col, type(m).__name__, m.message % m.message_args])', '    pyflakes.api.check(src, "<code>", R())', '    return json.dumps(out)'].join('\n'));
+            flOk = true;
+          }
+          py.globals.set('_fsrc', d.src);
+          r = py.runPython('_flakes(_fsrc)');
+        } catch (e) { r = JSON.stringify({ fail: String(e.message || e).split('\n').filter(Boolean).pop() || 'ошибка' }); }
+        send(d.id, { done: 1, r }); return;
+      }
+      if (d.t === 'fmt') {
+        let r;
+        try {
+          if (!fmtOk) {
+            // одна общая установка: если «Формат» нажали, пока Black уже ставится в фоне, второй вызов просто ждёт первый
+            if (!fmtP) fmtP = (async () => { await py.loadPackage('micropip'); await py.runPythonAsync('import micropip\nawait micropip.install("black")'); fmtOk = true; })().finally(() => { fmtP = null; });
+            await fmtP;
+          }
+          py.globals.set('_fsrc', d.src);
+          r = JSON.stringify({ ok: py.runPython('import black\nblack.format_str(_fsrc, mode=black.Mode(line_length=88))') });
+        } catch (e) { const m = String(e.message || e).split('\n').filter(Boolean).pop() || ''; r = JSON.stringify(/InvalidInput|Cannot parse/.test(m) ? { syntax: m } : { fail: m }); }
+        send(d.id, { done: 1, r }); return;
+      }
+      proxy = d.proxy || ''; pOrigin = d.origin || '';
+      let buf = '';
+      const live = d.t === 'run', emit = (s, e) => { if (!s) return; if (live) send(d.id, { o: s, e: e }); else buf += s; };
+      py.setStdout({ write: b => { emit(dO.decode(b, { stream: true }), 0); return b.length; } });
+      py.setStderr({ write: b => { emit(dE.decode(b, { stream: true }), 1); return b.length; } });
+      const q = (d.stdin || '').split('\n'); if (q.length && q[q.length - 1] === '') q.pop();
+      py.setStdin({ stdin: () => { if (q.length) return q.shift() + '\n'; if (d.inter && d.sync) {
+          // настоящий блокирующий input(): ждём ответ от сервис-воркера, пока пользователь печатает
+          const key = (d.sid || '') + '-' + d.id + '-' + (++nIn); send(d.id, { need: 1, key: key });
+          for (let n = 0, bad = 0; n < 100000 && bad < 50; n++) {
+            try { const x = new XMLHttpRequest(); x.open('GET', d.sync + '__ml_wait?k=' + encodeURIComponent(key), false); x.send(); if (x.status === 200) return x.responseText + '\n'; if (x.status !== 204) bad++; } catch (_) { bad++; }
+          }
+          return undefined;
+        }
+        if (d.inter) { send(d.id, { need: 1 }); throw new Error('NEED_INPUT'); } return undefined; } });
+      for (const f of written) { try { py.FS.unlink(ROOT + '/' + f); } catch (_) {} }
+      written = [];
+      for (const f of d.files || []) {
+        const dir = f.p.split('/').slice(0, -1).join('/');
+        if (dir) { try { py.FS.mkdirTree(ROOT + '/' + dir); } catch (_) {} }
+        py.FS.writeFile(ROOT + '/' + f.p, f.c); written.push(f.p);
+      }
+      py.runPython('import sys, os, random\nos.chdir("' + ROOT + '")\nfor _m in [m for m, v in sys.modules.items() if str(getattr(v, "__file__", "")).startswith("' + ROOT + '/")]: del sys.modules[_m]\nrandom.seed(' + ((d.seed | 0) || 1) + ')');
+      if (d.t === 'debug') { send(d.id, { done: 1, r: dbg(d.src) }); return; }
+      try { await py.loadPackagesFromImports(d.src, { messageCallback: () => {}, errorCallback: () => {} }); } catch (_) {}
+      // seaborn и plotly нет в наборе Pyodide: ставим из PyPI через micropip (один раз за сеанс, нужен интернет). pandas.plot() и seaborn тянут matplotlib
+      const imp = n => new RegExp('^[ \\t]*(?:import|from)[ \\t]+' + n + '\\b', 'm').test(d.src), quiet = { messageCallback: () => {}, errorCallback: () => {} };
+      const wantSb = imp('seaborn'), wantPl = imp('plotly');
+      if (wantSb || (imp('pandas') && /\.(?:plot|hist|boxplot)\b/.test(d.src))) { try { await py.loadPackage(['numpy', 'pandas', 'matplotlib'], quiet); } catch (_) {} }
+      if ((wantSb && !sbOk) || (wantPl && !plOk)) {
+        try {
+          if (!mpOk) { await py.loadPackage('micropip', quiet); mpOk = true; }
+          if (wantSb && !sbOk) { if (live) send(d.id, { st: '⏳ Устанавливаю seaborn (один раз за сеанс)…\n' }); await py.runPythonAsync('import micropip\nawait micropip.install("seaborn")'); sbOk = true; }
+          if (wantPl && !plOk) { if (live) send(d.id, { st: '⏳ Устанавливаю plotly (один раз за сеанс, около 15 МБ)…\n' }); await py.runPythonAsync('import micropip\nawait micropip.install("plotly==5.24.1")'); py.runPython(PLPATCH); plOk = true; }
+        } catch (e) { emit('Не удалось установить библиотеку (нужен интернет): ' + (String(e.message || e).split('\n').filter(Boolean).pop() || '') + '\n', 1); }
+        if (live) send(d.id, { st: '' });
+      }
+      // автоустановка недостающих модулей из PyPI (после seaborn/plotly, чтобы те ставились со своими настройками)
+      const instFail = {};
+      try {
+        if (!missOk) { py.runPython(MISS); missOk = true; }
+        py.globals.set('_asrc', d.src);
+        const miss = JSON.parse(py.runPython('_missing(_asrc)')).filter(n => !NOPIP.has(n) && /^[A-Za-z_]\w*$/.test(n)).slice(0, 8);
+        if (miss.length) {
+          if (!mpOk) { await py.loadPackage('micropip', quiet); mpOk = true; }
+          for (const n of miss) {
+            const pk = ALIAS[n] || n;
+            if (live) send(d.id, { st: '⏳ Устанавливаю ' + pk + ' из PyPI…\n' });
+            try { await py.runPythonAsync('import micropip\nawait micropip.install(' + JSON.stringify(pk) + ')'); }
+            catch (e) {
+              const m = String(e.message || e);
+              instFail[n] = 'Не удалось установить «' + pk + '»: ' + (/pure Python 3 wheel/i.test(m) ? 'пакет содержит нативный код, в браузере он не работает' : /find a pure|No matching|Can.t find|not found|404/i.test(m) ? 'такого пакета нет на PyPI' : 'нет доступа к PyPI (проверьте интернет)') + '\n';
+            }
+          }
+          if (live) send(d.id, { st: '' });
+        }
+      } catch (_) {}
+      // библиотеки, чьё имя указано строкой (__import__("scipy"), importlib.import_module), тоже подгружаем
+      for (const [k, v] of Object.entries({ scipy: 'scipy', sympy: 'sympy', PIL: 'pillow', sklearn: 'scikit-learn', bs4: 'beautifulsoup4', cv2: 'opencv-python', yaml: 'pyyaml', lxml: 'lxml', networkx: 'networkx', statsmodels: 'statsmodels', mpmath: 'mpmath', regex: 'regex' })) {
+        if (new RegExp('[\'"]' + k + '[\'"]').test(d.src)) { try { await py.loadPackage(v, { messageCallback: () => {}, errorCallback: () => {} }); } catch (_) {} }
+      }
+      if (/\b(requests|urllib)\b/.test(d.src)) { try { await py.loadPackage(['pyodide-http', 'requests']); py.runPython('import pyodide_http\npyodide_http.patch_all()'); } catch (_) {} }
+      let err = null; const g = py.globals.get('dict')(); g.set('__name__', '__main__');
+      try { await py.runPythonAsync(d.src, { globals: g }); } catch (e) { err = String(e.message || e); }
+      // причину неудачной установки показываем, только если программа действительно упала из-за этого модуля (необязательные импорты в try/except не шумят)
+      if (err) for (const n in instFail) if (err.indexOf("No module named '" + n) >= 0) emit(instFail[n], 1);
+      g.destroy();
+      let im = [], pf = []; if (live || d.t === 'test') { try { im = JSON.parse(figs()); } catch (_) {} if (plOk) { try { pf = JSON.parse(py.runPython('_pfigs()')); } catch (_) {} } }
+      send(d.id, { done: 1, err: err, buf: buf, im: im, pf: pf });
+    } catch (e) {
+      if (d.init) postMessage({ fatal: String(e) }); else send(d.id, { done: 1, err: String(e && e.message || e), buf: '', im: [] });
+    }
+  };
+</script>
+<script src="app.js"></script>
+<script src="extras.js"></script>
+<script src="tools.js"></script>
+<script src="cm-bundle.js"></script>
+<script src="cm.js"></script>
+<script src="school-config.js"></script>
+<script src="school.js"></script>
+<script src="homework.js"></script>
+<script src="diag.js"></script>
+<script src="shot.js"></script>
+<script src="metrika.js" defer></script>
+</body>
+</html>
